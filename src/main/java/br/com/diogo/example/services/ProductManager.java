@@ -13,6 +13,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.DatastoreServiceFactory;
+import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.KeyFactory;
+
 import br.com.diogo.example.models.Product;
 
 @Path("/products")
@@ -51,7 +57,13 @@ public class ProductManager {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Product saveProduct(Product product) {
-		product.setProductId(Integer.toString(product.getCode()));
+		
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		Key productKey = KeyFactory.createKey("Products","productKey");
+		Entity productEntity = new Entity("Products", productKey);
+		productToEntity(product, productEntity);
+		datastore.put(productEntity);
+		product.setId(productEntity.getKey().getId());
 		return product;
 	}
 	
@@ -69,5 +81,25 @@ public class ProductManager {
 	public Product alterProduct(@PathParam("code") int code, Product product) {
 		product.setName("Name " + code);
 		return product;
+	}
+	
+	private void productToEntity(Product product, Entity productEntity) {
+		productEntity.setProperty("ProductId", product.getProductId());
+		productEntity.setProperty("Name", product.getName());
+		productEntity.setProperty("Code", product.getCode());
+		productEntity.setProperty("Model", product.getModel());
+		productEntity.setProperty("Price", product.getPrice());
+	}
+	
+	private Product entityToProduct(Entity productEntity) {
+		Product product = new Product();
+		product.setId(productEntity.getKey().getId());
+		product.setProductId((String)productEntity.getProperty("ProductId"));
+		product.setName((String)productEntity.getProperty("Name"));
+		product.setCode(Integer.parseInt(productEntity.getProperty("Code").toString()));
+		product.setModel((String)productEntity.getProperty("Model"));
+		product.setPrice(Float.parseFloat(productEntity.getProperty("Price").toString()));
+		return product;
+		
 	}
 }
