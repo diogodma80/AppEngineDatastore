@@ -11,13 +11,21 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response.Status;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
+import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.Filter;
+import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.api.datastore.Query.FilterPredicate;
+import com.google.appengine.api.datastore.Query.SortDirection;
 
 import br.com.diogo.example.models.Product;
 
@@ -39,18 +47,39 @@ public class ProductManager {
 	@Produces("application/json")
 	@Path("/{code}")
 	public Product getProduct(@PathParam("code") int code) {
-		return createProduct(code);
+		
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		
+		Filter codeFilter = new FilterPredicate("Code", FilterOperator.EQUAL, code);
+		
+		Query query = new Query("Products").setFilter(codeFilter);
+		
+		Entity productEntity = datastore.prepare(query).asSingleEntity();
+		
+		if(productEntity != null) {
+			Product product = entityToProduct(productEntity);
+			return product;
+		} else {
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
 	}
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Product> getProducts() {
-		List<Product> list = new ArrayList<Product>();
-		for(int i = 0; i < 10; i++) {
-			list.add(createProduct(i));
+		List<Product> products = new ArrayList<Product>();
+		
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		Query query = new Query("Products").addSort("Code", SortDirection.ASCENDING);
+		
+		List<Entity> productsEntity = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
+		
+		for(Entity productEntity:productsEntity) {
+			Product product = entityToProduct(productEntity);
+			products.add(product);
 		}
 		
-		return list;
+		return products;
 	}
 	
 	@POST
@@ -58,11 +87,21 @@ public class ProductManager {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Product saveProduct(Product product) {
 		
+		//gets an instance of Datastore service
 		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		
+		//instantiates a key that will be used to create the product entity
 		Key productKey = KeyFactory.createKey("Products","productKey");
+		
+		//creates the new entity of type Products
 		Entity productEntity = new Entity("Products", productKey);
+		
+		//sets the "productEntity" entity properties
 		productToEntity(product, productEntity);
+		
+		//inserts the product
 		datastore.put(productEntity);
+		
 		product.setId(productEntity.getKey().getId());
 		return product;
 	}
@@ -70,8 +109,23 @@ public class ProductManager {
 	@DELETE
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/{code}")
-	public String deleteProduct(@PathParam("code") int code) {
-		return "Product " + code + " deleted";
+	public Product deleteProduct(@PathParam("code") int code) {
+		
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		
+		Filter codeFilter = new FilterPredicate("Code", FilterOperator.EQUAL, code);
+		
+		Query query = new Query("Products").setFilter(codeFilter);
+		
+		Entity productEntity = datastore.prepare(query).asSingleEntity();
+		
+		if(productEntity != null) {
+			datastore.delete(productEntity.getKey());
+			Product product = entityToProduct(productEntity);
+			return product;
+		} else {
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
 	}
 	
 	@PUT
@@ -79,8 +133,23 @@ public class ProductManager {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{code}")
 	public Product alterProduct(@PathParam("code") int code, Product product) {
-		product.setName("Name " + code);
-		return product;
+		
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		
+		Filter codeFilter = new FilterPredicate("Code", FilterOperator.EQUAL, code);
+		
+		Query query = new Query("Products").setFilter(codeFilter);
+		
+		Entity productEntity = datastore.prepare(query).asSingleEntity();
+		
+		if(productEntity != null) {
+			productToEntity(product, productEntity);
+			datastore.put(productEntity);
+			product.setId(productEntity.getKey().getId());
+			return product;
+		} else {
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
 	}
 	
 	private void productToEntity(Product product, Entity productEntity) {
