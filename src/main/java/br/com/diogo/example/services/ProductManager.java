@@ -32,7 +32,9 @@ import br.com.diogo.example.models.Product;
 @Path("/products")
 public class ProductManager {
 
-	private Product createProduct(int code) {
+	//dummy method to create products. 
+	//Not needed as the requests provide the new products in json format
+	/*private Product createProduct(int code) {
 		Product product = new Product();
 		product.setCode(code);
 		product.setModel("Model " + code);
@@ -41,7 +43,7 @@ public class ProductManager {
 		product.setProductId(Integer.toString(code));
 
 		return product;
-	}
+	}*/
 
 	@GET
 	@Produces("application/json")
