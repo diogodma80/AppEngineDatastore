@@ -3,6 +3,8 @@ package br.com.diogo.example.services;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -48,6 +50,7 @@ public class ProductManager {
 	@GET
 	@Produces("application/json")
 	@Path("/{code}")
+	@PermitAll
 	public Product getProduct(@PathParam("code") int code) {
 
 		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
@@ -68,6 +71,7 @@ public class ProductManager {
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
+	@PermitAll
 	public List<Product> getProducts() {
 		List<Product> products = new ArrayList<Product>();
 
@@ -87,6 +91,7 @@ public class ProductManager {
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
+	@RolesAllowed({"ADMIN", "USER"})
 	public Product saveProduct(Product product) {
 		
 		// gets an instance of Datastore service
@@ -115,6 +120,7 @@ public class ProductManager {
 	@DELETE
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/{code}")
+	@RolesAllowed("ADMIN")
 	public Product deleteProduct(@PathParam("code") int code) {
 
 		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
@@ -138,6 +144,7 @@ public class ProductManager {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{code}")
+	@RolesAllowed({"ADMIN", "USER"})
 	public Product alterProduct(@PathParam("code") int code, Product product) {
 
 		if (product.getId() != 0) {
