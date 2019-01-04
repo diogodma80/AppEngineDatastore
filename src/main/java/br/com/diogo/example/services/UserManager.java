@@ -1,11 +1,22 @@
 package br.com.diogo.example.services;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
+import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.FetchOptions;
+import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.SortDirection;
 
 import br.com.diogo.example.models.User;
 
@@ -44,5 +55,25 @@ public class UserManager {
 		user.setRole((String) userEntity.getProperty(PROP_ROLE));
 		
 		return user;
+	}
+	
+	//operation to list all users (USER_KIND) from Datastore by email. Only Admin users can call it.
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	@RolesAllowed("ADMIN")
+	public List<User> getUsers() {
+		
+		List<User> users = new ArrayList<>();
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		Query query = new Query(USER_KIND).addSort(PROP_EMAIL, SortDirection.ASCENDING);
+		
+		List<Entity> userEntities = datastore.prepare(query).asList(FetchOptions.Builder.withDefaults());
+		
+		for(Entity userEntity:userEntities) {
+			User user = entityToUser(userEntity);
+			
+			users.add(user);			
+		}
+		return users;		
 	}
 }
