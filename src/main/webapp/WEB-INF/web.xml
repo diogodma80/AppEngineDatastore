@@ -21,6 +21,9 @@
     <servlet-name>Exemple1</servlet-name>
     <url-pattern>/api/*</url-pattern>
   </servlet-mapping>
+  <listener>
+  	<listener-class>br.com.diogo.example.InitServletContextClass</listener-class>
+  </listener>
   <welcome-file-list>
     <welcome-file>index.html</welcome-file>
     <welcome-file>index.jsp</welcome-file>
