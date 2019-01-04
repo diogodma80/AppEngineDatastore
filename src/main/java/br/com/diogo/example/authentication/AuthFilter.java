@@ -2,7 +2,10 @@ package br.com.diogo.example.authentication;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.security.Principal;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,7 +16,19 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import javax.xml.bind.DatatypeConverter;
+
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.DatastoreServiceFactory;
+import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.Filter;
+import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.api.datastore.Query.FilterPredicate;
+
+import br.com.diogo.example.models.User;
+import br.com.diogo.example.services.UserManager;
 
 public class AuthFilter implements ContainerRequestFilter {
 
@@ -49,14 +64,14 @@ public class AuthFilter implements ContainerRequestFilter {
 			return;
 		}
 
-		//Authentication implemented with the method checkCredentalsAndRoles()
-		//Gets the roles that the target method allows with the annotation RolesAllowed
+		// Authentication implemented with the method checkCredentalsAndRoles()
+		// Gets the roles that the target method allows with the annotation RolesAllowed
 		RolesAllowed rolesAllowed = method.getAnnotation(RolesAllowed.class);
 		Set<String> rolesSet = new HashSet<String>(Arrays.asList(rolesAllowed.value()));
-		
-		//test if the credentials are correct and the user has the appropriate role
-		if (checkCredentialsAndRoles(loginPassword[0], loginPassword[1], rolesSet) == false) {
-			//returns 401 response code if false
+
+		// test if the credentials are correct and the user has the appropriate role
+		if (checkCredentialsAndRoles(loginPassword[0], loginPassword[1], rolesSet, requestContext) == false) {
+			// returns 401 response code if false
 			requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(ACCESS_UNAUTHORIZED).build());
 			return;
 		}
@@ -79,19 +94,55 @@ public class AuthFilter implements ContainerRequestFilter {
 		return new String(decodedBytes).split(":", 2);
 	}
 
-	private boolean checkCredentialsAndRoles(String username, String password, Set<String> roles) {
+	private boolean checkCredentialsAndRoles(String username, String password, Set<String> roles,
+			ContainerRequestContext requestContext) {
 		boolean isUserAllowed = false;
-		if (username.equals("Admin") && password.equals("Admin")) {
-			if (roles.contains("ADMIN")) {
-				isUserAllowed = true;
-			}
-		}
 
-		if (isUserAllowed == false) {
-			if (username.equals("User") && password.equals("User")) {
-				if(roles.contains("USER")) {
-					isUserAllowed = true;
-				}
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		Filter emailFilter = new FilterPredicate(UserManager.PROP_EMAIL, FilterOperator.EQUAL, username);
+		Query query = new Query(UserManager.USER_KIND).setFilter(emailFilter);
+		Entity userEntity = datastore.prepare(query).asSingleEntity();
+
+		if (userEntity != null) {
+			if (password.equals(userEntity.getProperty(UserManager.PROP_PASSWORD))
+					&& roles.contains(userEntity.getProperty(UserManager.PROP_ROLE))) {
+				final User user = new User();
+				user.setEmail((String) userEntity.getProperty(UserManager.PROP_EMAIL));
+				user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
+				user.setId(userEntity.getKey().getId());
+				user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
+				;
+				user.setLastLogin((Date) Calendar.getInstance().getTime());
+				user.setPassword((String) userEntity.getProperty(UserManager.PROP_PASSWORD));
+				user.setRole((String) userEntity.getProperty(UserManager.PROP_ROLE));
+
+				userEntity.setProperty(UserManager.PROP_LAST_LOGIN, user.getLastLogin());
+
+				datastore.put(userEntity);
+
+				requestContext.setSecurityContext(new SecurityContext() {
+
+					@Override
+					public boolean isUserInRole(String role) {
+						return role.equals(user.getRole());
+					}
+
+					@Override
+					public boolean isSecure() {
+						return true;
+					}
+
+					@Override
+					public Principal getUserPrincipal() {
+						return user;
+					}
+
+					@Override
+					public String getAuthenticationScheme() {
+						return SecurityContext.BASIC_AUTH;
+					}
+				});
+				isUserAllowed = true;
 			}
 		}
 

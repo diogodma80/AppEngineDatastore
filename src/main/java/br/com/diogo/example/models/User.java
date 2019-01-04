@@ -1,9 +1,10 @@
 package br.com.diogo.example.models;
 
 import java.io.Serializable;
+import java.security.Principal;
 import java.util.Date;
 
-public class User implements Serializable{
+public class User implements Serializable, Principal{
 	
 	/**
 	 * 
@@ -58,5 +59,9 @@ public class User implements Serializable{
 	}
 	public void setRole(String role) {
 		this.role = role;
+	}
+	@Override
+	public String getName() {
+		return this.email;
 	}
 }
