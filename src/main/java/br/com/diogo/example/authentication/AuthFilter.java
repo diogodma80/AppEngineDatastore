@@ -108,12 +108,11 @@ public class AuthFilter implements ContainerRequestFilter {
 					&& roles.contains(userEntity.getProperty(UserManager.PROP_ROLE))) {
 				final User user = new User();
 				user.setEmail((String) userEntity.getProperty(UserManager.PROP_EMAIL));
-				user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
-				user.setId(userEntity.getKey().getId());
-				user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
-				;
-				user.setLastLogin((Date) Calendar.getInstance().getTime());
 				user.setPassword((String) userEntity.getProperty(UserManager.PROP_PASSWORD));
+				user.setId(userEntity.getKey().getId());
+				user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
+				user.setLastLogin((Date) Calendar.getInstance().getTime());
+				user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
 				user.setRole((String) userEntity.getProperty(UserManager.PROP_ROLE));
 
 				userEntity.setProperty(UserManager.PROP_LAST_LOGIN, user.getLastLogin());

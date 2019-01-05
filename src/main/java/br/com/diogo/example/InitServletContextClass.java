@@ -39,11 +39,11 @@ public class InitServletContextClass implements ServletContextListener {
 		Query query = new Query(UserManager.USER_KIND).setFilter(roleFilter);
 		List<Entity> entities = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(1));
 		if(entities.size() == 0) {
-			log.info("No user was found. Creating the User type in Datastore");
+			log.info("No user was found. Creating the User type Admin in Datastore");
 			Key userKey = KeyFactory.createKey(UserManager.USER_KIND, "userkey");
 			Entity userEntity = new Entity(UserManager.USER_KIND, userKey);
-			userEntity.setProperty(UserManager.PROP_EMAIL, "adm@gmail.com");
-			userEntity.setProperty(UserManager.PROP_PASSWORD, "Admin#7");
+			userEntity.setProperty(UserManager.PROP_EMAIL, "admin@gmail.com");
+			userEntity.setProperty(UserManager.PROP_PASSWORD, "Admin");
 			userEntity.setProperty(UserManager.PROP_GCM_REG_ID, "");
 			userEntity.setProperty(UserManager.PROP_LAST_LOGIN, Calendar.getInstance().getTime());
 			userEntity.setProperty(UserManager.PROP_LAST_GCM_REGISTER, Calendar.getInstance().getTime());
