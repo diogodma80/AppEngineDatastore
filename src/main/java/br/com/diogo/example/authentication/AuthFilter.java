@@ -5,12 +5,17 @@ import java.lang.reflect.Method;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
+import javax.cache.Cache;
+import javax.cache.CacheException;
+import javax.cache.CacheFactory;
+import javax.cache.CacheManager;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ResourceInfo;
@@ -106,19 +111,8 @@ public class AuthFilter implements ContainerRequestFilter {
 		if (userEntity != null) {
 			if (password.equals(userEntity.getProperty(UserManager.PROP_PASSWORD))
 					&& roles.contains(userEntity.getProperty(UserManager.PROP_ROLE))) {
-				final User user = new User();
-				user.setEmail((String) userEntity.getProperty(UserManager.PROP_EMAIL));
-				user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
-				user.setId(userEntity.getKey().getId());
-				user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
-				;
-				user.setLastLogin((Date) Calendar.getInstance().getTime());
-				user.setPassword((String) userEntity.getProperty(UserManager.PROP_PASSWORD));
-				user.setRole((String) userEntity.getProperty(UserManager.PROP_ROLE));
 
-				userEntity.setProperty(UserManager.PROP_LAST_LOGIN, user.getLastLogin());
-
-				datastore.put(userEntity);
+				final User user = updateUserLogin(datastore, userEntity);
 
 				requestContext.setSecurityContext(new SecurityContext() {
 
@@ -147,6 +141,48 @@ public class AuthFilter implements ContainerRequestFilter {
 		}
 
 		return isUserAllowed;
+	}
+
+	private User updateUserLogin(DatastoreService datastore, Entity userEntity) {
+		final User user = new User();
+		
+		boolean canUseCache = true;
+		boolean saveOnCache = true;
+		
+		String email = (String) userEntity.getProperty(UserManager.PROP_EMAIL);
+		
+		Cache cache;
+		try {
+			CacheFactory cacheFactory = CacheManager.getInstance().getCacheFactory();
+			cache = cacheFactory.createCache(Collections.emptyMap());
+			
+			if(cache.containsKey(email)) {
+				Date lastLogin = (Date) cache.get(email);
+				if(Calendar.getInstance().getTime().getTime() - lastLogin.getTime()) < 30000) {
+					saveOnCache = false;
+				}
+			}
+			if(saveOnCache == true) {
+				cache.put(email,  (Date)Calendar.getInstance().getTime());
+				canUseCache = false;
+			}
+		} catch (CacheException e) {
+			canUseCache = false;
+		}
+
+		
+		user.setEmail((String) userEntity.getProperty(UserManager.PROP_EMAIL));
+		user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
+		user.setId(userEntity.getKey().getId());
+		user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
+		user.setLastLogin((Date) Calendar.getInstance().getTime());
+		user.setPassword((String) userEntity.getProperty(UserManager.PROP_PASSWORD));
+		user.setRole((String) userEntity.getProperty(UserManager.PROP_ROLE));
+
+		userEntity.setProperty(UserManager.PROP_LAST_LOGIN, user.getLastLogin());
+
+		datastore.put(userEntity);
+		return user;
 	}
 
 }
