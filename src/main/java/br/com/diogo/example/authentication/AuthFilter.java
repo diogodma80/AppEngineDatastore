@@ -158,12 +158,12 @@ public class AuthFilter implements ContainerRequestFilter {
 			
 			if(cache.containsKey(email)) {
 				Date lastLogin = (Date) cache.get(email);
-				if(Calendar.getInstance().getTime().getTime() - lastLogin.getTime()) < 30000) {
+				if((Calendar.getInstance().getTime().getTime() - lastLogin.getTime()) < 30000) {
 					saveOnCache = false;
 				}
 			}
 			if(saveOnCache == true) {
-				cache.put(email,  (Date)Calendar.getInstance().getTime());
+				cache.put(email,(Date)Calendar.getInstance().getTime());
 				canUseCache = false;
 			}
 		} catch (CacheException e) {
