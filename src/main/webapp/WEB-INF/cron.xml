@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cronentries>
+	<cron>
+		<url>/cron/cron1/testcron</url>
+		<description>Cron Message every 2 minutes</description>
+		<schedule>every 10 minutes</schedule>
+		<retry-parameters>
+			<min-backoff-seconds>2.5</min-backoff-seconds>
+			<max-doublings>5</max-doublings>
+		</retry-parameters>
+	</cron>
+	<cron>
+		<url>/CronServlet</url>
+		<description>CronServlet test cron job</description>
+		<schedule>every 2 minutes</schedule>
+		<retry-parameters>
+			<min-backoff-seconds>2.5</min-backoff-seconds>
+			<max-doublings>5</max-doublings>
+		</retry-parameters>
+	</cron>
+</cronentries>

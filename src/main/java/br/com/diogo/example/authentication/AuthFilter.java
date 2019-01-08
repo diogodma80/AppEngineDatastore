@@ -144,44 +144,46 @@ public class AuthFilter implements ContainerRequestFilter {
 	}
 
 	private User updateUserLogin(DatastoreService datastore, Entity userEntity) {
-		final User user = new User();
-		
+		User user = new User();
+
 		boolean canUseCache = true;
 		boolean saveOnCache = true;
-		
+
 		String email = (String) userEntity.getProperty(UserManager.PROP_EMAIL);
-		
+
 		Cache cache;
 		try {
 			CacheFactory cacheFactory = CacheManager.getInstance().getCacheFactory();
 			cache = cacheFactory.createCache(Collections.emptyMap());
-			
-			if(cache.containsKey(email)) {
+
+			if (cache.containsKey(email)) {
 				Date lastLogin = (Date) cache.get(email);
-				if((Calendar.getInstance().getTime().getTime() - lastLogin.getTime()) < 30000) {
+				if ((Calendar.getInstance().getTime().getTime() - lastLogin.getTime()) < 30000) {
 					saveOnCache = false;
 				}
 			}
-			if(saveOnCache == true) {
-				cache.put(email,(Date)Calendar.getInstance().getTime());
+			if (saveOnCache == true) {
+				cache.put(email, (Date) Calendar.getInstance().getTime());
 				canUseCache = false;
 			}
 		} catch (CacheException e) {
 			canUseCache = false;
 		}
 
-		
-		user.setEmail((String) userEntity.getProperty(UserManager.PROP_EMAIL));
-		user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
-		user.setId(userEntity.getKey().getId());
-		user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
-		user.setLastLogin((Date) Calendar.getInstance().getTime());
-		user.setPassword((String) userEntity.getProperty(UserManager.PROP_PASSWORD));
-		user.setRole((String) userEntity.getProperty(UserManager.PROP_ROLE));
+		if (canUseCache == false) {
+			user.setEmail((String) userEntity.getProperty(UserManager.PROP_EMAIL));
+			user.setGcmRegId((String) userEntity.getProperty(UserManager.PROP_GCM_REG_ID));
+			user.setId(userEntity.getKey().getId());
+			user.setLastGCMRegister((Date) userEntity.getProperty(UserManager.PROP_LAST_GCM_REGISTER));
+			user.setLastLogin((Date) Calendar.getInstance().getTime());
+			user.setPassword((String) userEntity.getProperty(UserManager.PROP_PASSWORD));
+			user.setRole((String) userEntity.getProperty(UserManager.PROP_ROLE));
 
-		userEntity.setProperty(UserManager.PROP_LAST_LOGIN, user.getLastLogin());
+			userEntity.setProperty(UserManager.PROP_LAST_LOGIN, user.getLastLogin());
 
-		datastore.put(userEntity);
+			datastore.put(userEntity);
+		}
+
 		return user;
 	}
 
