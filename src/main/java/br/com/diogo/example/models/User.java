@@ -4,6 +4,10 @@ import java.io.Serializable;
 import java.security.Principal;
 import java.util.Date;
 
+import javax.validation.constraints.NotNull;
+
+import org.hibernate.validator.constraints.Email;
+
 public class User implements Serializable, Principal{
 	
 	/**
@@ -11,11 +15,17 @@ public class User implements Serializable, Principal{
 	 */
 	private static final long serialVersionUID = 8679913943607840307L;
 	private long id;
+	
+	@Email
 	private String email;
+	
+	@NotNull
 	private String password;
 	private String gcmRegId;
 	private Date lastLogin;
 	private Date lastGCMRegister;
+	
+	@NotNull
 	private String role;
 	
 	public long getId() {
